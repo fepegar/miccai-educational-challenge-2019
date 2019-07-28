@@ -2,20 +2,20 @@
 
 *You can run the notebook on [Google Colab](https://colab.research.google.com/github/fepegar/miccai-educational-challenge-2019/blob/master/Combining_the_power_of_PyTorch_and_NiftyNet.ipynb) or render an already executed version on [nbviewer](https://nbviewer.jupyter.org/github/fepegar/miccai-educational-challenge-2019/blob/master/Combining_the_power_of_PyTorch_and_NiftyNet.ipynb).*
 
-<div>
-  <a href="https://colab.research.google.com/github/fepegar/miccai-educational-challenge-2019/blob/master/Combining_the_power_of_PyTorch_and_NiftyNet.ipynb" 
-     target="_parent">
-     <img align="left" 
-        src="https://colab.research.google.com/assets/colab-badge.svg">
-  </a>
-  <a href="https://nbviewer.jupyter.org/github/fepegar/miccai-educational-challenge-2019/blob/master/Combining_the_power_of_PyTorch_and_NiftyNet.ipynb" 
-     target="_parent">
-     <img align="right" 
-        src="https://raw.githubusercontent.com/jupyter/design/master/logos/Badges/nbviewer_badge.png" 
-        width="109" height="20">
-  </a>
-</div>
+<a href="https://colab.research.google.com/github/fepegar/miccai-educational-challenge-2019/blob/master/Combining_the_power_of_PyTorch_and_NiftyNet.ipynb" 
+   target="_parent">
+   <img align="left" 
+      src="https://colab.research.google.com/assets/colab-badge.svg">
+</a>
 
+<a href="https://nbviewer.jupyter.org/github/fepegar/miccai-educational-challenge-2019/blob/master/Combining_the_power_of_PyTorch_and_NiftyNet.ipynb" 
+   target="_parent">
+   <img align="right" 
+      src="https://raw.githubusercontent.com/jupyter/design/master/logos/Badges/nbviewer_badge.png" 
+      width="109" height="20">
+</a>
+
+<br />
 
 ---
 
