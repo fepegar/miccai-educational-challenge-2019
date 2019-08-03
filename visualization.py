@@ -5,6 +5,10 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from skimage.exposure import rescale_intensity
 
+from ipywidgets import fixed
+import ipywidgets as widgets
+from IPython.display import display
+
 sns.set(context='notebook')
 
 def plot_parameters(model, name, title=None, axis=None, kde=True, bw=None):
@@ -47,7 +51,16 @@ def rescale_array(array, cutoff=(2, 98)):
     return array
 
 
-def plot_volume(array, enhance=True, colors_path=None, title=None):
+def plot_volume(
+        array,
+        enhance=True,
+        colors_path=None,
+        title=None,
+        idx_sag=None,
+        idx_cor=None,
+        idx_axi=None,
+        return_figure=False,
+):
     """
     Expects an isotropic-spacing volume in RAS orientation
     """
@@ -58,19 +71,22 @@ def plot_volume(array, enhance=True, colors_path=None, title=None):
     if enhance:
         array = rescale_array(array)
     si, sj, sk = array.shape[:3]
+    i = idx_sag if idx_sag is not None else si // 2
+    j = idx_cor if idx_cor is not None else sj // 2
+    k = idx_axi if idx_axi is not None else sk // 2
     slices = [
-        array[si//2, ...],
-        array[:, sj//2, ...],
-        array[:, :, sk//2, ...],
+        array[i, ...],
+        array[:, j, ...],
+        array[:, :, k, ...],
     ]
     if colors_path is not None:
         color_table = ColorTable(colors_path)
         slices = [color_table.colorize(s) for s in slices]
     cmap = 'gray' if array.ndim == 3 else None
     labels = ('AS', 'RS', 'RA')
-    
+
     fig = plt.figure(figsize=(10, 6))
-    gs = gridspec.GridSpec(1, 3, width_ratios=[256/160, 1, 1])
+    gs = gridspec.GridSpec(1, 3, width_ratios=[256 / 160, 1, 1])
     ax1 = plt.subplot(gs[0])
     ax2 = plt.subplot(gs[1])
     ax3 = plt.subplot(gs[2])
@@ -87,6 +103,28 @@ def plot_volume(array, enhance=True, colors_path=None, title=None):
     if title is not None:
         plt.gcf().suptitle(title)
     plt.tight_layout()
+    if return_figure:
+        return fig
+
+
+def plot_volume_interactive(array, **kwargs):
+    def get_widget(size):
+        w = widgets.IntSlider(
+            min=0, max=size-1, step=1, value=size//2, continuous_update=False)
+        return w
+    shape = array.shape[:3]
+    widget_sag, widget_cor, widget_axi = tuple(map(get_widget, shape))
+    ui = widgets.HBox([widget_sag, widget_cor, widget_axi])
+    args_dict = {
+        'array': fixed(array),
+        'idx_sag': widget_sag,
+        'idx_cor': widget_cor,
+        'idx_axi': widget_axi,
+        'return_figure': fixed(True),
+    }
+    args_dict.update(kwargs)
+    out = widgets.interactive_output(plot_volume, args_dict)
+    display(ui, out)
 
     
 def plot_histogram(array, kde=True, ylim=None, labels=False):
