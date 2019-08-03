@@ -122,6 +122,9 @@ def plot_volume_interactive(array, **kwargs):
         'idx_axi': widget_axi,
         'return_figure': fixed(True),
     }
+
+    kwargs = {key: fixed(value) for (key, value) in kwargs.items()}
+
     args_dict.update(kwargs)
     out = widgets.interactive_output(plot_volume, args_dict)
     display(ui, out)
