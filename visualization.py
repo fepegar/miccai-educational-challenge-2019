@@ -26,9 +26,9 @@ def plot_parameters(model, name, title=None, axis=None, kde=True, bw=None):
     else:
         sns.kdeplot(array, ax=axis, bw=bw)
     if title is not None:
-        ax.set_title(title)
+        axis.set_title(title)
 
-        
+
 def plot_all_parameters(model, labelsize=6, kde=True, bw=None):
     fig, axes = plt.subplots(3, 7, figsize=(11, 5))
     axes = list(reversed(axes.ravel()))
@@ -41,6 +41,18 @@ def plot_all_parameters(model, labelsize=6, kde=True, bw=None):
     plt.tight_layout()
 
 
+def to_rgb(array):
+    if array.shape[-1] == 3:  # assume already RGB
+        return array
+    array = array.astype(float)
+    array -= array.min()
+    array /= array.max()
+    array *= 255
+    array = array.astype(np.uint8)
+    rgb = np.stack(3 * [array], axis=-1)
+    return rgb
+
+
 def turn(s):
     return np.flipud(np.rot90(s))
 
@@ -49,6 +61,23 @@ def rescale_array(array, cutoff=(2, 98)):
     percentiles = tuple(np.percentile(array, cutoff))
     array = rescale_intensity(array, in_range=percentiles)
     return array
+
+
+def add_intersections(slices, i, j, k):
+    """
+    Colors from 3D Slicer
+    """
+    sag, cor, axi = slices
+    red = 255, 131, 114
+    green = 143, 229, 97
+    yellow = 255, 237, 135
+    sag[j, :] = green
+    sag[:, k] = red
+    cor[i, :] = yellow
+    cor[:, k] = red
+    axi[i, :] = yellow
+    axi[:, j] = green
+    return sag, cor, axi
 
 
 def plot_volume(
@@ -60,6 +89,7 @@ def plot_volume(
         idx_cor=None,
         idx_axi=None,
         return_figure=False,
+        intersections=True,
 ):
     """
     Expects an isotropic-spacing volume in RAS orientation
@@ -79,11 +109,16 @@ def plot_volume(
         array[:, j, ...],
         array[:, :, k, ...],
     ]
+
     if colors_path is not None:
         color_table = ColorTable(colors_path)
         slices = [color_table.colorize(s) for s in slices]
+    if intersections:
+        slices = [to_rgb(s) for s in slices]
+        slices = add_intersections(slices, i, j, k)
     cmap = 'gray' if array.ndim == 3 else None
-    labels = ('AS', 'RS', 'RA')
+    labels = 'AS', 'RS', 'RA'
+    titles = 'Sagittal', 'Coronal', 'Axial'
 
     fig = plt.figure(figsize=(10, 6))
     gs = gridspec.GridSpec(1, 3, width_ratios=[256 / 160, 1, 1])
@@ -91,7 +126,7 @@ def plot_volume(
     ax2 = plt.subplot(gs[1])
     ax3 = plt.subplot(gs[2])
     axes = ax1, ax2, ax3
-    for (slice_, axis, label) in zip(slices, axes, labels):
+    for (slice_, axis, label, stitle) in zip(slices, axes, labels, titles):
         axis.imshow(turn(slice_), cmap=cmap)
         axis.grid(False)
         axis.invert_xaxis()
@@ -99,6 +134,7 @@ def plot_volume(
         x, y = label
         axis.set_xlabel(x)
         axis.set_ylabel(y)
+        axis.set_title(stitle)
         axis.set_aspect('equal')
     if title is not None:
         plt.gcf().suptitle(title)
@@ -108,12 +144,20 @@ def plot_volume(
 
 
 def plot_volume_interactive(array, **kwargs):
-    def get_widget(size):
+    def get_widget(size, description):
         w = widgets.IntSlider(
-            min=0, max=size-1, step=1, value=size//2, continuous_update=False)
+            min=0,
+            max=size-1,
+            step=1,
+            value=size//2,
+            continuous_update=False,
+            description=description,
+        )
         return w
     shape = array.shape[:3]
-    widget_sag, widget_cor, widget_axi = tuple(map(get_widget, shape))
+    names = 'Sagittal L-R', 'Coronal P-A', 'Axial I-S'
+    widget_sag, widget_cor, widget_axi = [
+        get_widget(s, n) for (s, n) in zip(shape, names)]
     ui = widgets.HBox([widget_sag, widget_cor, widget_axi])
     args_dict = {
         'array': fixed(array),
@@ -122,9 +166,7 @@ def plot_volume_interactive(array, **kwargs):
         'idx_axi': widget_axi,
         'return_figure': fixed(True),
     }
-
     kwargs = {key: fixed(value) for (key, value) in kwargs.items()}
-
     args_dict.update(kwargs)
     out = widgets.interactive_output(plot_volume, args_dict)
     display(ui, out)
