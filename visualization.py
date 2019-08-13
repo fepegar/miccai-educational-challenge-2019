@@ -89,11 +89,11 @@ def rescale_array(
 
 
 def add_intersections(
-        slices: List[np.ndarray, np.ndarray, np.ndarray],
+        slices: Tuple[np.ndarray, np.ndarray, np.ndarray],
         i: int,
         j: int,
         k: int,
-        ) -> List[np.ndarray, np.ndarray, np.ndarray]:
+        ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     Colors from 3D Slicer
     """
@@ -107,7 +107,7 @@ def add_intersections(
     cor[:, k] = red
     axi[i, :] = yellow
     axi[:, j] = green
-    return [sag, cor, axi]
+    return sag, cor, axi
 
 
 def plot_volume(
@@ -145,7 +145,7 @@ def plot_volume(
         slices = [color_table.colorize(s) for s in slices]
     if intersections:
         slices = [to_rgb(s) for s in slices]
-        slices = add_intersections(slices, i, j, k)
+        slices = add_intersections(tuple(slices), i, j, k)
     cmap = 'gray' if array.ndim == 3 else None
     labels = 'AS', 'RS', 'RA'
     titles = 'Sagittal', 'Coronal', 'Axial'
