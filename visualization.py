@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Tuple, Optional, Iterable, Union
+from typing import List, Tuple, Optional, Union
 
 import torch
 import numpy as np
@@ -89,11 +89,11 @@ def rescale_array(
 
 
 def add_intersections(
-        slices: Iterable[np.ndarray, np.ndarray, np.ndarray],
+        slices: List[np.ndarray, np.ndarray, np.ndarray],
         i: int,
         j: int,
         k: int,
-        ) -> Iterable[np.ndarray, np.ndarray, np.ndarray]:
+        ) -> List[np.ndarray, np.ndarray, np.ndarray]:
     """
     Colors from 3D Slicer
     """
@@ -107,7 +107,7 @@ def add_intersections(
     cor[:, k] = red
     axi[i, :] = yellow
     axi[:, j] = green
-    return sag, cor, axi
+    return [sag, cor, axi]
 
 
 def plot_volume(
