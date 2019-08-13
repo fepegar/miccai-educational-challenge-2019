@@ -1,3 +1,7 @@
+from pathlib import Path
+from typing import Tuple, Optional, Iterable, Union
+
+import torch
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -11,38 +15,56 @@ from IPython.display import display
 
 sns.set(context='notebook')
 
-def plot_parameters(model, name, title=None, axis=None, kde=True, bw=None):
+def plot_parameters(
+        model: torch.nn.Module,
+        parameters_name: str,
+        title: Optional[str] = None,
+        axis: Optional[plt.Axes] = None,
+        kde: bool = True,
+        kde_bandwidth: float = None,
+        ) -> None:
     for name_, params in model.named_parameters():
-        if name_ == name:
+        if name_ == parameters_name:
             tensor = params.data
             break
     else:
-        raise ValueError(f'{name} not found in model')
+        raise ValueError(f'{parameters_name} not found in model')
     array = tensor.numpy().ravel()
     if axis is None:
         fig, axis = plt.subplots()
-    if bw is None:
+    if kde_bandwidth is None:
         sns.distplot(array, ax=axis, kde=kde)
     else:
-        sns.kdeplot(array, ax=axis, bw=bw)
+        sns.kdeplot(array, ax=axis, bw=kde_bandwidth)
     if title is not None:
         axis.set_title(title)
 
 
-def plot_all_parameters(model, labelsize=6, kde=True, bw=None):
+def plot_all_parameters(
+        model: torch.nn.Module,
+        labelsize: int = 6,
+        kde: bool = True,
+        kde_bandwidth: float = None,
+        ) -> None:
     fig, axes = plt.subplots(3, 7, figsize=(11, 5))
     axes = list(reversed(axes.ravel()))
-    for name, params in model.named_parameters():
+    for parameters_name, params in model.named_parameters():
         if len(params.data.shape) < 2:
             continue
         axis = axes.pop()
-        plot_parameters(model, name, axis=axis, kde=kde, bw=bw)
+        plot_parameters(
+            model,
+            parameters_name,
+            axis=axis,
+            kde=kde,
+            kde_bandwidth=kde_bandwidth,
+        )
         axis.xaxis.set_tick_params(labelsize=labelsize)
     plt.tight_layout()
 
 
-def to_rgb(array):
-    if array.shape[-1] == 3:  # assume already RGB
+def to_rgb(array: np.ndarray) -> np.ndarray:
+    if array.shape[-1] == 3:  # assume it's already RGB
         return array
     array = array.astype(float)
     array -= array.min()
@@ -53,17 +75,25 @@ def to_rgb(array):
     return rgb
 
 
-def turn(s):
-    return np.flipud(np.rot90(s))
+def turn(array_2d: np.ndarray) -> np.ndarray:
+    return np.flipud(np.rot90(array_2d))
 
 
-def rescale_array(array, cutoff=(2, 98)):
+def rescale_array(
+        array: np.ndarray,
+        cutoff: Tuple[float, float] = (2, 98),
+        ) -> np.ndarray:
     percentiles = tuple(np.percentile(array, cutoff))
     array = rescale_intensity(array, in_range=percentiles)
     return array
 
 
-def add_intersections(slices, i, j, k):
+def add_intersections(
+        slices: Iterable[np.ndarray, np.ndarray, np.ndarray],
+        i: int,
+        j: int,
+        k: int,
+        ) -> Iterable[np.ndarray, np.ndarray, np.ndarray]:
     """
     Colors from 3D Slicer
     """
@@ -81,16 +111,16 @@ def add_intersections(slices, i, j, k):
 
 
 def plot_volume(
-        array,
-        enhance=True,
-        colors_path=None,
-        title=None,
-        idx_sag=None,
-        idx_cor=None,
-        idx_axi=None,
-        return_figure=False,
-        intersections=True,
-):
+        array: np.ndarray,
+        enhance: bool = True,
+        colors_path: Optional[Union[str, Path]] = None,
+        title: Optional[str] = None,
+        idx_sag: Optional[int] = None,
+        idx_cor: Optional[int] = None,
+        idx_axi: Optional[int] = None,
+        return_figure: bool = False,
+        intersections: bool = True,
+        ) -> Optional[plt.Figure]:
     """
     Expects an isotropic-spacing volume in RAS orientation
     """
@@ -143,9 +173,9 @@ def plot_volume(
         return fig
 
 
-def plot_volume_interactive(array, **kwargs):
+def plot_volume_interactive(array: np.ndarray, **kwargs) -> None:
     def get_widget(size, description):
-        w = widgets.IntSlider(
+        widget = widgets.IntSlider(
             min=0,
             max=size-1,
             step=1,
@@ -153,7 +183,7 @@ def plot_volume_interactive(array, **kwargs):
             continuous_update=False,
             description=description,
         )
-        return w
+        return widget
     shape = array.shape[:3]
     names = 'Sagittal L-R', 'Coronal P-A', 'Axial I-S'
     widget_sag, widget_cor, widget_axi = [
@@ -171,21 +201,27 @@ def plot_volume_interactive(array, **kwargs):
     out = widgets.interactive_output(plot_volume, args_dict)
     display(ui, out)
 
-    
-def plot_histogram(array, kde=True, ylim=None, labels=False):
+
+def plot_histogram(
+        array: np.ndarray,
+        kde: bool = True,
+        ylim: Optional[Tuple[float, float]] = None,
+        add_labels: bool = False,
+        ) -> None:
     sns.distplot(array.ravel(), kde=kde)
     if ylim is not None:
         plt.ylim(ylim)
-    if labels:
+    if add_labels:
         plt.xlabel('Intensity')
-        plt.ylabel('Count')
+        plt.ylabel('Number of voxels')
 
 
 class ColorTable:
-    def __init__(self, colors_path):
+    def __init__(self, colors_path: Union[str, Path]):
         self.df = self.read_color_table(colors_path)
-    
-    def read_color_table(self, colors_path):
+
+    @staticmethod
+    def read_color_table(colors_path: Union[str, Path]):
         df = pd.read_csv(
             colors_path,
             sep=' ',
@@ -201,8 +237,8 @@ class ColorTable:
             index_col='Label'
         )
         return df
-    
-    def get_color(self, label):
+
+    def get_color(self, label: int) -> Tuple[int, int, int]:
         """
         There must be nicer ways of doing this
         """
@@ -215,8 +251,8 @@ class ColorTable:
         except KeyError:
             rgb = 0, 0, 0
         return rgb
-    
-    def colorize(self, label_map):
+
+    def colorize(self, label_map: np.ndarray) -> np.ndarray:
         rgb = np.stack(3 * [label_map], axis=-1)
         for label in np.unique(label_map):
             mask = label_map == label

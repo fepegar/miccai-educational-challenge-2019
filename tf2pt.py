@@ -1,4 +1,6 @@
+from pathlib import Path
 from collections import OrderedDict
+from typing import Callable, Tuple, Optional, Union
 
 import torch
 import numpy as np
@@ -22,7 +24,8 @@ DIM_PT = {
     'width': 4,
 }
 
-def transpose_to_pytorch(array):
+
+def transpose_to_pytorch(array: np.ndarray) -> np.ndarray:
     """
     See docs of torch.nn.Conv3d
     https://pytorch.org/docs/stable/nn.html#conv3d
@@ -38,7 +41,7 @@ def transpose_to_pytorch(array):
     return array
 
 
-def transpose_to_tensorflow(array):
+def transpose_to_tensorflow(array: np.ndarray) -> np.ndarray:
     """
     See docs of tf.nn.conv3d
     https://www.tensorflow.org/api_docs/python/tf/nn/conv3d#args
@@ -54,7 +57,7 @@ def transpose_to_tensorflow(array):
     return array
 
 
-def niftynet_batch_to_torch_tensor(batch_dict):
+def niftynet_batch_to_torch_tensor(batch_dict: dict) -> torch.Tensor:
     window = batch_dict['image']
     window = window[..., 0, :]  # remove time dimension
     window = transpose_to_pytorch(window)
@@ -63,7 +66,7 @@ def niftynet_batch_to_torch_tensor(batch_dict):
     return tensor
 
 
-def torch_logits_to_niftynet_labels(logits):
+def torch_logits_to_niftynet_labels(logits: torch.Tensor) -> np.ndarray:
     logits = logits.detach().cpu()
     labels = logits.argmax(dim=DIM_PT['channels'], keepdim=True).numpy()
     labels = labels.astype(np.uint16)
@@ -71,14 +74,20 @@ def torch_logits_to_niftynet_labels(logits):
     return labels
 
 
-def tf2pt(name_tf, tensor_tf, name_mapping_function):
+def tf2pt(
+        name_tf: str,
+        array_tf: np.ndarray,
+        name_mapping_function: Callable,
+        ) -> Tuple[str, np.ndarray]:
     name_pt = name_mapping_function(name_tf)
-    num_dimensions = tensor_tf.dim()
+    num_dimensions = array_tf.dim()
     if num_dimensions == 1:
-        tensor_pt = tensor_tf
+        array_pt = array_tf
     elif num_dimensions == 5:
-        tensor_pt = tensor_tf.permute(4, 3, 0, 1, 2)
-    return name_pt, tensor_pt
+        array_pt = array_tf.permute(4, 3, 0, 1, 2)
+    else:
+        raise NotImplementedError
+    return name_pt, array_pt
 
 
 """
@@ -88,12 +97,12 @@ TensorFlow makes me sad and PyTorch makes me happy
 
 
 def checkpoint_tf_to_state_dict_tf_(
-        input_checkpoint_tf_path,
-        output_csv_tf_path,
-        output_state_dict_tf_path,
-        filter_out_function=None,
-        replace_string=None,
-        ):
+        input_checkpoint_tf_path: Union[str, Path],
+        output_csv_tf_path: Union[str, Path],
+        output_state_dict_tf_path: Union[str, Path],
+        filter_out_function: Optional[Callable] = None,
+        replace_string: Optional[str] = None,
+        ) -> None:
     tf.reset_default_graph()
 
     rows = []
@@ -129,7 +138,7 @@ def checkpoint_tf_to_state_dict_tf_(
     torch.save(state_dict, output_state_dict_tf_path)
 
 
-def checkpoint_tf_to_state_dict_tf(*args, **kwargs):
+def checkpoint_tf_to_state_dict_tf(*args, **kwargs) -> None:
     """
     This is done so that the GPU can be used by PyTorch afterwards
     https://stackoverflow.com/a/44842044/3956024

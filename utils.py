@@ -1,10 +1,14 @@
 import os
-import nibabel as nib
+from typing import Union
+from pathlib import Path
+
+import numpy as np
 from niftynet.io.image_reader import ImageReader
 
-def list_files(startpath):
+
+def list_files(startpath: Union[str, Path]) -> None:
     """
-    https://stackoverflow.com/a/9728478/3956024 
+    Adapted from https://stackoverflow.com/a/9728478/3956024
     """
     startpath = str(startpath)
     for root, dirs, files in os.walk(startpath):
@@ -16,10 +20,11 @@ def list_files(startpath):
             print('{}{}'.format(subindent, f))
 
 
-def get_first_array(directory):
+def get_first_array(directory: Union[str, Path]) -> np.ndarray:
     """
     Use NiftyNet's reader to get RAS images
     """
+    directory = Path(directory)
     image_dir = list(directory.glob('**/*.nii.gz'))[0].parent
     input_dict = dict(
         path_to_search=str(image_dir),

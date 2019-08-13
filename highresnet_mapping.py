@@ -1,17 +1,18 @@
 import re
+from typing import Tuple
 
 
-def is_not_valid(variable_name, shape):
+def is_not_valid(variable_name: str, shape: Tuple[int, ...]) -> bool:
     exclusion_criteria = (
         'Adam' in variable_name,  # used for training
         'biased' in variable_name,  # unused
         not shape,  # empty variables
-        'ExponentialMovingAverage' in variable_name,  # unused by NiftyNet model zoo
+        'ExponentialMovingAverage' in variable_name,  # unused on NiftyNet model zoo
     )
     return any(exclusion_criteria)
 
 
-def tf2pt_name(name_tf):
+def tf2pt_name(name_tf: str) -> str:
     """
     Return the equivalent PyTorch parameter name of the TensorFlow
     variable. Rules have been created from visual inspection of the
@@ -64,4 +65,6 @@ def tf2pt_name(name_tf):
             'conv_2_bn/bn_/moving_variance': 'block.6.convolutional_block.1.running_var',
         }
         name_pt = conv_layers_dict[name_tf]
+    else:
+        raise NotImplementedError
     return name_pt
